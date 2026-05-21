@@ -74,7 +74,7 @@ struct BannerItem: Identifiable {
 struct BannersSection: View {
     private let banners: [BannerItem] = [
         BannerItem(imageName: "Banner1",   backgroundColor: .clear,                            title: "Дино\nмастер-р-р\nкласс"),
-        BannerItem(imageName: nil,         backgroundColor: Color(red: 1, green: 0.53, blue: 0.02), title: "ЖазФест ×\nподарки"),
+        BannerItem(imageName: "Banner2",   backgroundColor: .clear,                            title: ""),
         BannerItem(imageName: nil,         backgroundColor: Color(red: 0.13, green: 0.13, blue: 0.18), title: "Новинка"),
         BannerItem(imageName: nil,         backgroundColor: Color(red: 0.35, green: 0.60, blue: 0.90), title: "Как развлечь\nмалыша?"),
     ]
