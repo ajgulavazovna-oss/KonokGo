@@ -32,10 +32,7 @@ struct ContentView: View {
 
 struct HomeView: View {
     var body: some View {
-        NavigationStack {
-            Text("Главная")
-                .navigationTitle("Главная")
-        }
+        Color.clear
     }
 }
 
@@ -43,10 +40,7 @@ struct HomeView: View {
 
 struct CartView: View {
     var body: some View {
-        NavigationStack {
-            Text("Корзина")
-                .navigationTitle("Корзина")
-        }
+        Color.clear
     }
 }
 
@@ -54,10 +48,7 @@ struct CartView: View {
 
 struct ProfileView: View {
     var body: some View {
-        NavigationStack {
-            Text("Профиль")
-                .navigationTitle("Профиль")
-        }
+        Color.clear
     }
 }
 
