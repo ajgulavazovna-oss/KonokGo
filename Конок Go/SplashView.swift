@@ -127,15 +127,10 @@ struct SplashView: View {
 
     @State private var strokeProgress: CGFloat = 0
     @State private var fillOpacity: Double = 0
-    @State private var textScaleY: CGFloat = 0.04
-    @State private var textScaleX: CGFloat = 1.1
-    @State private var textOffsetX: CGFloat = 0
     @State private var textOpacity: Double = 0
-    @State private var textFinalOffset: CGFloat = 0
+    @State private var textOffset: CGFloat = 22
+    @State private var textBlur: CGFloat = 10
     @State private var splashOpacity: Double = 1
-    @State private var elapsed: Double = 0
-    @State private var swingActive = false
-    @State private var swingTimer: Timer? = nil
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
@@ -152,9 +147,9 @@ struct SplashView: View {
                 Text("Конок Go")
                     .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                    .scaleEffect(x: textScaleX, y: textScaleY)
-                    .offset(x: textOffsetX, y: textFinalOffset)
                     .opacity(textOpacity)
+                    .blur(radius: textBlur)
+                    .offset(y: textOffset)
             }
         }
         .opacity(splashOpacity)
@@ -174,48 +169,24 @@ struct SplashView: View {
             }
         }
 
-        // Phase 3 — text appears as thin line + starts swinging (1.6s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-            textOpacity = 1
-            swingActive = true
-            elapsed = 0
-
-            // Grow from thin line to full text over 0.9s
-            withAnimation(.easeOut(duration: 0.9)) {
-                textScaleY = 1.0
-                textScaleX = 1.0
+        // Phase 3 — text rises with blur clear (1.7s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.7) {
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.78)) {
+                textOffset = 0
             }
-
-            // Swinging side to side — timer at ~60fps
-            swingTimer = Timer.scheduledTimer(withTimeInterval: 1/60.0, repeats: true) { t in
-                elapsed += 1/60.0
-                let duration = 1.2
-                let progress = min(elapsed / duration, 1.0)
-                // Amplitude dampens as progress grows
-                let amplitude: CGFloat = 38 * CGFloat(1 - progress)
-                let freq: Double = 2.8
-                textOffsetX = amplitude * CGFloat(sin(elapsed * freq * .pi))
-
-                if progress >= 1.0 {
-                    t.invalidate()
-                    swingTimer = nil
-                    // Final spring land
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.65)) {
-                        textOffsetX = 0
-                        textFinalOffset = 0
-                    }
-                }
+            withAnimation(.easeOut(duration: 0.65)) {
+                textOpacity = 1.0
+                textBlur = 0
             }
         }
 
-        // Phase 4 — fade out splash (3.4s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.4) {
-            swingTimer?.invalidate()
-            withAnimation(.easeInOut(duration: 0.55)) {
+        // Phase 4 — fade out splash (3.2s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
+            withAnimation(.easeInOut(duration: 0.6)) {
                 splashOpacity = 0
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.95) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.8) {
             isFinished = true
         }
     }

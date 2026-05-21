@@ -28,15 +28,17 @@ struct ______GoApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
+                Color(red: 254/255, green: 134/255, blue: 5/255)
+                    .ignoresSafeArea()
+
                 ContentView()
                     .opacity(splashFinished ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.5), value: splashFinished)
 
                 if !splashFinished {
                     SplashView(isFinished: $splashFinished)
-                        .transition(.opacity)
                 }
             }
-            .animation(.easeInOut(duration: 0.4), value: splashFinished)
         }
         .modelContainer(sharedModelContainer)
     }
