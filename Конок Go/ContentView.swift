@@ -73,8 +73,10 @@ struct AddressRow: View {
                     .frame(width: 48, height: 48)
                 Image("Logo")
                     .resizable()
+                    .renderingMode(.template)
                     .scaledToFit()
-                    .frame(width: 32, height: 32)
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
             }
 
             // Address text
