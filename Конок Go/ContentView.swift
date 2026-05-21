@@ -111,12 +111,12 @@ struct SegmentSwitcher: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 // Background track
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                Capsule()
                     .fill(Color(.systemGray5))
                     .frame(height: 52)
 
                 // Active pill
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                Capsule()
                     .fill(Color.orange)
                     .frame(width: (geo.size.width - 8) / 2, height: 44)
                     .padding(.leading, selected == 0 ? 4 : (geo.size.width - 8) / 2 + 4)
