@@ -60,10 +60,12 @@ struct HomeView: View {
 
 struct AppHeader: View {
     @Binding var selectedSegment: Int
+    @State private var searchText: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             AddressRow()
+            SearchBar(text: $searchText)
             SegmentSwitcher(selected: $selectedSegment)
         }
         .padding(.horizontal, 16)
@@ -78,12 +80,18 @@ struct AppHeader: View {
 struct AddressRow: View {
     var body: some View {
         HStack(spacing: 12) {
-            // Logo circle
-            Image("Logo")
-                .resizable()
-                .renderingMode(.original)
-                .scaledToFit()
-                .frame(width: 48, height: 48)
+            // Logo
+            ZStack {
+                Circle()
+                    .fill(Color.orange)
+                    .frame(width: 48, height: 48)
+                Image("Logo")
+                    .resizable()
+                    .renderingMode(.template)
+                    .scaledToFit()
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+            }
 
             // Address text
             VStack(alignment: .leading, spacing: 2) {
@@ -102,6 +110,34 @@ struct AddressRow: View {
 
             Spacer()
         }
+    }
+}
+
+// MARK: - Search Bar
+
+struct SearchBar: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color(.tertiaryLabel))
+            TextField("Поиск", text: $text)
+                .font(.system(size: 16))
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color(.tertiaryLabel))
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(Color(hex: "F1F0EF"))
+        .clipShape(Capsule())
     }
 }
 
