@@ -8,6 +8,8 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Root
+
 struct ContentView: View {
     @State private var selection: Int = 0
 
@@ -31,8 +33,120 @@ struct ContentView: View {
 // MARK: - Home
 
 struct HomeView: View {
+    @State private var selectedSegment: Int = 0
+
     var body: some View {
-        Color.clear
+        VStack(spacing: 0) {
+            AppHeader(selectedSegment: $selectedSegment)
+            Spacer()
+        }
+        .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - App Header
+
+struct AppHeader: View {
+    @Binding var selectedSegment: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            AddressRow()
+            SegmentSwitcher(selected: $selectedSegment)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 14)
+        .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - Address Row
+
+struct AddressRow: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            // Logo circle
+            ZStack {
+                Circle()
+                    .fill(Color.orange)
+                    .frame(width: 48, height: 48)
+                Image("Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+            }
+
+            // Address text
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text("Укажите адрес")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color(.label))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(.label))
+                }
+                Text("Круглосуточно")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(Color(.secondaryLabel))
+            }
+
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Segment Switcher
+
+struct SegmentSwitcher: View {
+    @Binding var selected: Int
+
+    private let segments: [(title: String, subtitle: String)] = [
+        ("Еда", "5 000 товаров"),
+        ("большаялавка", "10 000 товаров")
+    ]
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                // Background track
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(.systemGray5))
+                    .frame(height: 52)
+
+                // Active pill
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.orange)
+                    .frame(width: (geo.size.width - 8) / 2, height: 44)
+                    .padding(.leading, selected == 0 ? 4 : (geo.size.width - 8) / 2 + 4)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.75), value: selected)
+
+                // Labels
+                HStack(spacing: 0) {
+                    ForEach(0..<segments.count, id: \.self) { index in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                selected = index
+                            }
+                        } label: {
+                            VStack(spacing: 1) {
+                                Text(segments[index].title)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(selected == index ? .white : Color(.secondaryLabel))
+                                Text(segments[index].subtitle)
+                                    .font(.system(size: 11, weight: .regular))
+                                    .foregroundStyle(selected == index ? .white.opacity(0.85) : Color(.tertiaryLabel))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .frame(height: 52)
     }
 }
 
