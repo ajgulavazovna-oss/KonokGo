@@ -149,8 +149,8 @@ struct SegmentSwitcher: View {
     @Binding var selected: Int
 
     private let segments: [(title: String, subtitle: String)] = [
-        ("Еда", "5 000 товаров"),
-        ("большаялавка", "10 000 товаров")
+        ("Еда", "Рестораны и кафе"),
+        ("Супермаркеты", "Продукты и товары")
     ]
 
     var body: some View {
