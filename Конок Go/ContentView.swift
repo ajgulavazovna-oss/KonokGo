@@ -9,8 +9,10 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @State private var selection: Int = 0
+
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             Tab("Главная", systemImage: "house.fill", value: 0) {
                 HomeView()
             }
