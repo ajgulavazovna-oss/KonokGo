@@ -50,11 +50,83 @@ struct HomeView: View {
     @State private var selectedSegment: Int = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            AppHeader(selectedSegment: $selectedSegment)
-            Spacer()
+        ScrollView {
+            VStack(spacing: 0) {
+                AppHeader(selectedSegment: $selectedSegment)
+                BannersSection()
+                    .padding(.top, 16)
+                Spacer(minLength: 100)
+            }
         }
         .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - Banners Section
+
+struct BannerItem: Identifiable {
+    let id = UUID()
+    let imageName: String?
+    let backgroundColor: Color
+    let title: String
+}
+
+struct BannersSection: View {
+    private let banners: [BannerItem] = [
+        BannerItem(imageName: "Banner1",   backgroundColor: .clear,                            title: "Дино\nмастер-р-р\nкласс"),
+        BannerItem(imageName: nil,         backgroundColor: Color(red: 1, green: 0.53, blue: 0.02), title: "ЖазФест ×\nподарки"),
+        BannerItem(imageName: nil,         backgroundColor: Color(red: 0.13, green: 0.13, blue: 0.18), title: "Новинка"),
+        BannerItem(imageName: nil,         backgroundColor: Color(red: 0.35, green: 0.60, blue: 0.90), title: "Как развлечь\nмалыша?"),
+    ]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(banners) { banner in
+                    BannerCard(banner: banner)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+struct BannerCard: View {
+    let banner: BannerItem
+    private let cardW: CGFloat = 160
+    private let cardH: CGFloat = 200
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            // Background image or color
+            if let name = banner.imageName {
+                Image(name)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: cardW, height: cardH)
+                    .clipped()
+            } else {
+                banner.backgroundColor
+            }
+
+            // Gradient overlay for text readability
+            LinearGradient(
+                colors: [Color.black.opacity(0), Color.black.opacity(0.58)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+
+            // Title
+            Text(banner.title)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 14)
+                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+        }
+        .frame(width: cardW, height: cardH)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
