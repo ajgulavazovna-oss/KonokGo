@@ -94,8 +94,8 @@ struct BannersSection: View {
 
 struct BannerCard: View {
     let banner: BannerItem
-    private let cardW: CGFloat = 160
-    private let cardH: CGFloat = 200
+    private let cardW: CGFloat = 130
+    private let cardH: CGFloat = 160
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {

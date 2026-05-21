@@ -131,44 +131,47 @@ struct SplashView: View {
     @State private var textOffset: CGFloat = 20
     @State private var textBlur: CGFloat = 10
     @State private var slideUp: CGFloat = 0
+    @State private var screenHeight: CGFloat = 852
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
     var body: some View {
-        ZStack {
-            orange.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                orange.ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Spacer()
+                VStack(spacing: 20) {
+                    Spacer()
 
-                // Logo — bigger, crisp
-                AnimatedLogo(strokeProgress: strokeProgress, fillOpacity: fillOpacity)
-                    .frame(width: 240, height: 189)
+                    AnimatedLogo(strokeProgress: strokeProgress, fillOpacity: fillOpacity)
+                        .frame(width: 240, height: 189)
 
-                // "Конок Go" text — slightly above center
-                Text("Конок Go")
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .opacity(textOpacity)
-                    .blur(radius: textBlur)
-                    .offset(y: textOffset)
+                    Text("Конок Go")
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .opacity(textOpacity)
+                        .blur(radius: textBlur)
+                        .offset(y: textOffset)
 
-                Spacer()
-                Spacer()
+                    Spacer()
+                    Spacer()
+                }
+            }
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 40,
+                    bottomTrailingRadius: 40,
+                    topTrailingRadius: 0
+                )
+            )
+            .ignoresSafeArea()
+            .offset(y: slideUp)
+            .onAppear {
+                screenHeight = geo.size.height
+                startAnimation()
             }
         }
-        // Rounded bottom corners
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 40,
-                bottomTrailingRadius: 40,
-                topTrailingRadius: 0
-            )
-        )
-        .ignoresSafeArea()
-        .offset(y: slideUp)
-        .onAppear { startAnimation() }
     }
 
     private func startAnimation() {
@@ -198,7 +201,7 @@ struct SplashView: View {
         // Phase 4 — slide up fast off screen (3.0s)
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
             withAnimation(.easeIn(duration: 0.38)) {
-                slideUp = -UIScreen.main.bounds.height
+                slideUp = -screenHeight
             }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.38) {
