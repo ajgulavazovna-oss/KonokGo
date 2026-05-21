@@ -18,6 +18,8 @@ extension Color {
         let b = Double(int & 0xFF) / 255
         self.init(red: r, green: g, blue: b)
     }
+
+    static let inputBackground = Color(.systemGray6)
 }
 
 // MARK: - Root
@@ -136,7 +138,7 @@ struct SearchBar: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
-        .background(Color(hex: "F1F0EF"))
+        .background(Color.inputBackground)
         .clipShape(Capsule())
     }
 }
@@ -156,7 +158,7 @@ struct SegmentSwitcher: View {
             ZStack(alignment: .leading) {
                 // Background track
                 Capsule()
-                    .fill(Color(hex: "F1F0EF"))
+                    .fill(Color.inputBackground)
                     .frame(height: 52)
 
                 // Active pill
