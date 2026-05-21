@@ -94,8 +94,8 @@ struct BannersSection: View {
 
 struct BannerCard: View {
     let banner: BannerItem
-    private let cardW: CGFloat = 130
-    private let cardH: CGFloat = 160
+    private let cardW: CGFloat = 110
+    private let cardH: CGFloat = 135
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -115,10 +115,10 @@ struct BannerCard: View {
 
             // Title
             Text(banner.title)
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 13, weight: .light))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 14)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 12)
         }
         .frame(width: cardW, height: cardH)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
