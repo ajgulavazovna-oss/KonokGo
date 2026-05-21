@@ -172,6 +172,8 @@ struct SegmentSwitcher: View {
                 HStack(spacing: 0) {
                     ForEach(0..<segments.count, id: \.self) { index in
                         Button {
+                            let impact = UIImpactFeedbackGenerator(style: .light)
+                            impact.impactOccurred()
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                                 selected = index
                             }
