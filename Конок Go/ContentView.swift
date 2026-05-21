@@ -110,12 +110,8 @@ struct BannerCard: View {
                 banner.backgroundColor
             }
 
-            // Gradient overlay for text readability
-            LinearGradient(
-                colors: [Color.black.opacity(0), Color.black.opacity(0.58)],
-                startPoint: .center,
-                endPoint: .bottom
-            )
+            // Dark overlay for text readability
+            Color.black.opacity(0.32)
 
             // Title
             Text(banner.title)
@@ -123,7 +119,6 @@ struct BannerCard: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)
                 .padding(.bottom, 14)
-                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
         }
         .frame(width: cardW, height: cardH)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))

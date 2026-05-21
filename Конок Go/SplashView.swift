@@ -103,13 +103,6 @@ struct AnimatedLogo: View {
 
     var body: some View {
         ZStack {
-            // Glow behind logo when filled
-            LogoShape()
-                .fill(Color.white.opacity(0.18))
-                .blur(radius: 12)
-                .opacity(fillOpacity)
-                .scaleEffect(1.05)
-
             // Filled logo — crisp, fully white
             LogoShape()
                 .fill(Color.white)
