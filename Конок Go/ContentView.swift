@@ -79,16 +79,11 @@ struct AddressRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Logo circle
-            ZStack {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 48, height: 48)
-                Image("Logo")
-                    .resizable()
-                    .renderingMode(.original)
-                    .scaledToFit()
-                    .frame(width: 30, height: 30)
-            }
+            Image("Logo")
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .frame(width: 48, height: 48)
 
             // Address text
             VStack(alignment: .leading, spacing: 2) {
