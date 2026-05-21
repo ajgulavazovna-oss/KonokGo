@@ -103,19 +103,26 @@ struct AnimatedLogo: View {
 
     var body: some View {
         ZStack {
-            // Filled logo
+            // Glow behind logo when filled
+            LogoShape()
+                .fill(Color.white.opacity(0.18))
+                .blur(radius: 12)
+                .opacity(fillOpacity)
+                .scaleEffect(1.05)
+
+            // Filled logo — crisp, fully white
             LogoShape()
                 .fill(Color.white)
                 .opacity(fillOpacity)
 
-            // Stroke that draws
+            // Stroke that draws — thicker for visibility
             LogoShape()
                 .trim(from: 0, to: strokeProgress)
                 .stroke(
                     Color.white,
-                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+                    style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
                 )
-                .opacity(1 - fillOpacity * 0.7)
+                .opacity(1 - fillOpacity)
         }
     }
 }
@@ -128,9 +135,9 @@ struct SplashView: View {
     @State private var strokeProgress: CGFloat = 0
     @State private var fillOpacity: Double = 0
     @State private var textOpacity: Double = 0
-    @State private var textOffset: CGFloat = 22
+    @State private var textOffset: CGFloat = 20
     @State private var textBlur: CGFloat = 10
-    @State private var splashOpacity: Double = 1
+    @State private var slideUp: CGFloat = 0
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
@@ -138,55 +145,70 @@ struct SplashView: View {
         ZStack {
             orange.ignoresSafeArea()
 
-            VStack(spacing: 32) {
-                // Logo
-                AnimatedLogo(strokeProgress: strokeProgress, fillOpacity: fillOpacity)
-                    .frame(width: 200, height: 157)
+            VStack(spacing: 20) {
+                Spacer()
 
-                // "Конок Go" text
+                // Logo — bigger, crisp
+                AnimatedLogo(strokeProgress: strokeProgress, fillOpacity: fillOpacity)
+                    .frame(width: 240, height: 189)
+
+                // "Конок Go" text — slightly above center
                 Text("Конок Go")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .opacity(textOpacity)
                     .blur(radius: textBlur)
                     .offset(y: textOffset)
+
+                Spacer()
+                Spacer()
             }
         }
-        .opacity(splashOpacity)
+        // Rounded bottom corners
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: 40,
+                bottomTrailingRadius: 40,
+                topTrailingRadius: 0
+            )
+        )
+        .ignoresSafeArea()
+        .offset(y: slideUp)
         .onAppear { startAnimation() }
     }
 
     private func startAnimation() {
-        // Phase 1 — stroke draw (0 → 1.6s)
+        // Phase 1 — stroke draws (0 → 1.6s)
         withAnimation(.easeInOut(duration: 1.6)) {
             strokeProgress = 1.0
         }
 
-        // Phase 2 — fill fade in (1.2s → 1.8s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        // Phase 2 — fill fades in (1.1s → 1.7s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
             withAnimation(.easeIn(duration: 0.6)) {
                 fillOpacity = 1.0
             }
         }
 
-        // Phase 3 — text rises with blur clear (1.7s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.7) {
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.78)) {
+        // Phase 3 — text rises up with blur clear (1.6s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+            withAnimation(.spring(response: 0.65, dampingFraction: 0.78)) {
                 textOffset = 0
             }
-            withAnimation(.easeOut(duration: 0.65)) {
+            withAnimation(.easeOut(duration: 0.6)) {
                 textOpacity = 1.0
                 textBlur = 0
             }
         }
 
-        // Phase 4 — fade out splash (3.2s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
-            withAnimation(.easeInOut(duration: 0.6)) {
-                splashOpacity = 0
+        // Phase 4 — slide up fast off screen (3.0s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation(.easeIn(duration: 0.38)) {
+                slideUp = -UIScreen.main.bounds.height
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.8) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.38) {
             isFinished = true
         }
     }
