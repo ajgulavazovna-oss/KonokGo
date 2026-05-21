@@ -129,7 +129,7 @@ struct SegmentSwitcher: View {
                     .frame(height: 52)
 
                 // Active pill
-                Capsule()
+                RoundedRectangle(cornerRadius: 29, style: .continuous)
                     .fill(Color.orange)
                     .frame(width: (geo.size.width - 8) / 2, height: 44)
                     .padding(.leading, selected == 0 ? 4 : (geo.size.width - 8) / 2 + 4)
