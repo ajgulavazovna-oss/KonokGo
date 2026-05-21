@@ -54,7 +54,7 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 AppHeader(selectedSegment: $selectedSegment)
                 BannersSection()
-                    .padding(.top, 16)
+                    .padding(.top, 6)
                 Spacer(minLength: 100)
             }
         }
