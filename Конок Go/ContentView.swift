@@ -48,6 +48,7 @@ struct ContentView: View {
 
 struct AddressPromptSheet: View {
     @Binding var isPresented: Bool
+    @State private var showMapView: Bool = false
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
@@ -78,7 +79,7 @@ struct AddressPromptSheet: View {
                 }
 
                 Button {
-                    isPresented = false
+                    showMapView = true
                 } label: {
                     Text("Указать")
                         .font(.system(size: 16, weight: .semibold))
@@ -94,6 +95,9 @@ struct AddressPromptSheet: View {
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .fullScreenCover(isPresented: $showMapView) {
+            AddressMapView()
+        }
     }
 }
 
