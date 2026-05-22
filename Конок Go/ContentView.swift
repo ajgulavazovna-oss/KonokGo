@@ -26,6 +26,7 @@ extension Color {
 
 struct ContentView: View {
     @State private var selection: Int = 0
+    @State private var showAddressSheet: Bool = true
 
     var body: some View {
         TabView(selection: $selection) {
@@ -41,6 +42,65 @@ struct ContentView: View {
         }
         .tint(.orange)
         .tabBarMinimizeBehavior(.onScrollDown)
+        .sheet(isPresented: $showAddressSheet) {
+            AddressPromptSheet(isPresented: $showAddressSheet)
+                .presentationDetents([.fraction(0.28)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(28)
+        }
+    }
+}
+
+// MARK: - Address Prompt Sheet
+
+struct AddressPromptSheet: View {
+    @Binding var isPresented: Bool
+
+    private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image("Logo")
+                .resizable()
+                .renderingMode(.template)
+                .foregroundStyle(orange)
+                .scaledToFit()
+                .frame(width: 44, height: 44)
+
+            Text("Укажите адрес для заказа")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color(.label))
+
+            HStack(spacing: 12) {
+                Button {
+                    isPresented = false
+                } label: {
+                    Text("Пропустить")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color(.systemGray5))
+                        .clipShape(Capsule())
+                }
+
+                Button {
+                    isPresented = false
+                } label: {
+                    Text("Указать")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(orange)
+                        .clipShape(Capsule())
+                }
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
