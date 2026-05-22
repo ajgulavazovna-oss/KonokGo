@@ -89,15 +89,20 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                                 completion: @escaping (String?, Bool) -> Void) {
         geocoder.cancelGeocode()
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        geocoder.reverseGeocodeLocation(location) { placemarks, _ in
-            guard let p = placemarks?.first else { completion(nil, false); return }
-            let city = p.locality ?? ""
-            let inOsh = city == "Ош" || city.lowercased() == "osh"
-            var parts: [String] = []
-            if !city.isEmpty { parts.append(city) }
-            if let street = p.thoroughfare { parts.append(street) }
-            if let num = p.subThoroughfare { parts.append(num) }
-            completion(parts.joined(separator: ", "), inOsh)
+        Task {
+            do {
+                let placemarks = try await geocoder.reverseGeocodeLocation(location)
+                guard let p = placemarks.first else { completion(nil, false); return }
+                let city = p.locality ?? ""
+                let inOsh = city == "Ош" || city.lowercased() == "osh"
+                var parts: [String] = []
+                if !city.isEmpty { parts.append(city) }
+                if let street = p.thoroughfare { parts.append(street) }
+                if let num = p.subThoroughfare { parts.append(num) }
+                completion(parts.joined(separator: ", "), inOsh)
+            } catch {
+                completion(nil, false)
+            }
         }
     }
 }
