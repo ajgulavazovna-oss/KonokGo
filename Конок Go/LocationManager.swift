@@ -39,6 +39,14 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
+    func refreshLocation() {
+        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+            manager.startUpdatingLocation()
+        } else {
+            requestPermission()
+        }
+    }
+
     func saveAddress(_ address: String) {
         guard !address.isEmpty else { return }
         userAddress = address

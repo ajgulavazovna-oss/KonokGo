@@ -49,8 +49,8 @@ struct ContentView: View {
 
 struct AddressPromptSheet: View {
     @Binding var isPresented: Bool
+    @Binding var showSearch: Bool
     @EnvironmentObject var locationManager: LocationManager
-    @State private var showMapView: Bool = false
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
@@ -81,7 +81,10 @@ struct AddressPromptSheet: View {
                 }
 
                 Button {
-                    showMapView = true
+                    isPresented = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        showSearch = true
+                    }
                 } label: {
                     Text("Указать")
                         .font(.system(size: 16, weight: .semibold))
@@ -97,10 +100,6 @@ struct AddressPromptSheet: View {
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .fullScreenCover(isPresented: $showMapView) {
-            AddressMapView()
-                .environmentObject(locationManager)
-        }
     }
 }
 
@@ -110,39 +109,45 @@ struct HomeView: View {
     var splashFinished: Bool
     @EnvironmentObject var locationManager: LocationManager
     @State private var selectedSegment: Int = 0
-    @State private var showAddressSheet: Bool = false
-    @State private var showMapView: Bool = false
+    @State private var showAddressPrompt: Bool = false
+    @State private var showAddressSearch: Bool = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                AppHeader(selectedSegment: $selectedSegment, showMapView: $showMapView)
+                AppHeader(selectedSegment: $selectedSegment, showAddressSearch: $showAddressSearch)
                 BannersSection()
                     .padding(.top, 6)
                 Spacer(minLength: 100)
             }
         }
         .background(Color(.systemBackground))
-        .sheet(isPresented: $showAddressSheet) {
-            AddressPromptSheet(isPresented: $showAddressSheet)
+        .sheet(isPresented: $showAddressPrompt) {
+            AddressPromptSheet(isPresented: $showAddressPrompt, showSearch: $showAddressSearch)
                 .presentationDetents([.fraction(0.28)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(28)
                 .environmentObject(locationManager)
         }
-        .fullScreenCover(isPresented: $showMapView) {
-            AddressMapView()
+        .sheet(isPresented: $showAddressSearch) {
+            AddressSearchSheet()
+                .presentationDetents([.fraction(0.70)])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(24)
                 .environmentObject(locationManager)
         }
         .onChange(of: splashFinished) { _, finished in
             if finished && !locationManager.hasAddress {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    showAddressSheet = true
+                    showAddressPrompt = true
                 }
             }
         }
         .onChange(of: locationManager.hasAddress) { _, hasAddr in
-            if hasAddr { showAddressSheet = false }
+            if hasAddr {
+                showAddressPrompt = false
+                showAddressSearch = false
+            }
         }
     }
 }
@@ -214,12 +219,12 @@ struct BannerCard: View {
 
 struct AppHeader: View {
     @Binding var selectedSegment: Int
-    @Binding var showMapView: Bool
+    @Binding var showAddressSearch: Bool
     @State private var searchText: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            AddressRow(showMapView: $showMapView)
+            AddressRow(showAddressSearch: $showAddressSearch)
             SearchBar(text: $searchText)
             SegmentSwitcher(selected: $selectedSegment)
         }
@@ -233,12 +238,12 @@ struct AppHeader: View {
 // MARK: - Address Row
 
 struct AddressRow: View {
-    @Binding var showMapView: Bool
+    @Binding var showAddressSearch: Bool
     @EnvironmentObject var locationManager: LocationManager
 
     var body: some View {
         Button {
-            showMapView = true
+            showAddressSearch = true
         } label: {
             HStack(spacing: 12) {
                 ZStack {

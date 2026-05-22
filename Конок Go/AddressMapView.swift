@@ -98,12 +98,15 @@ struct AddressMapView: View {
                         HStack {
                             Spacer()
                             Button { centerOnUser() } label: {
-                                Image(systemName: "location.fill")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(orange)
-                                    .frame(width: 44, height: 44)
-                                    .background(Color(.systemBackground))
-                                    .clipShape(Circle())
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(.systemBackground))
+                                        .frame(width: 56, height: 56)
+                                        .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                                    Image(systemName: "location.fill")
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundStyle(orange)
+                                }
                             }
                             .padding(.trailing, 16)
                             .padding(.bottom, 12)
@@ -281,7 +284,7 @@ struct AddressMapView: View {
     // MARK: — Center on user
 
     private func centerOnUser() {
-        locationManager.requestPermission()
+        locationManager.refreshLocation()
         if let loc = locationManager.userLocation {
             withAnimation {
                 cameraPosition = .region(MKCoordinateRegion(
