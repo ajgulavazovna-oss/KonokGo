@@ -28,6 +28,7 @@ struct AddressMapView: View {
     @State private var isGeocoding: Bool = false
     @State private var showNotInOshAlert: Bool = false
     @State private var isOutsideOsh: Bool = false
+    @State private var showSearchSheet: Bool = false
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
@@ -134,18 +135,29 @@ struct AddressMapView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
 
-                        // Address field
-                        HStack {
-                            TextField("Улица и дом", text: $address)
-                                .font(.system(size: 15))
-                            if isGeocoding {
-                                ProgressView().scaleEffect(0.8)
+                        // Address field — tap to open search
+                        Button {
+                            showSearchSheet = true
+                        } label: {
+                            HStack {
+                                Text(address.isEmpty ? "Улица и дом" : address)
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(address.isEmpty ? Color(.placeholderText) : Color(.label))
+                                    .lineLimit(1)
+                                Spacer()
+                                if isGeocoding {
+                                    ProgressView().scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color(.tertiaryLabel))
+                                }
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 13)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 13)
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                         // Type selector
                         HStack(spacing: 8) {
@@ -242,6 +254,13 @@ struct AddressMapView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .sheet(isPresented: $showSearchSheet) {
+            AddressSearchSheet()
+                .presentationDetents([.fraction(0.70)])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(24)
+                .environmentObject(locationManager)
+        }
         .alert("Мы здесь пока не работаем 😔", isPresented: $showNotInOshAlert) {
             Button("Понятно", role: .cancel) { }
         } message: {
@@ -263,6 +282,11 @@ struct AddressMapView: View {
                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             ))
         }
+        .onChange(of: locationManager.userAddress) { _, newAddress in
+            guard !newAddress.isEmpty else { return }
+            address = newAddress
+            forwardGeocode(newAddress)
+        }
     }
 
     // MARK: — Geocode center
@@ -277,6 +301,24 @@ struct AddressMapView: View {
                     address = addr
                 }
                 isOutsideOsh = !inOsh
+            }
+        }
+    }
+
+    // MARK: — Forward Geocode (address text → map coordinates)
+
+    private func forwardGeocode(_ query: String) {
+        Task {
+            let geocoder = CLGeocoder()
+            guard let placemarks = try? await geocoder.geocodeAddressString(query),
+                  let loc = placemarks.first?.location else { return }
+            await MainActor.run {
+                withAnimation {
+                    cameraPosition = .region(MKCoordinateRegion(
+                        center: loc.coordinate,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    ))
+                }
             }
         }
     }

@@ -49,7 +49,7 @@ struct ContentView: View {
 
 struct AddressPromptSheet: View {
     @Binding var isPresented: Bool
-    @Binding var showSearch: Bool
+    @Binding var showMap: Bool
     @EnvironmentObject var locationManager: LocationManager
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
@@ -83,7 +83,7 @@ struct AddressPromptSheet: View {
                 Button {
                     isPresented = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        showSearch = true
+                        showMap = true
                     }
                 } label: {
                     Text("Указать")
@@ -110,6 +110,7 @@ struct HomeView: View {
     @EnvironmentObject var locationManager: LocationManager
     @State private var selectedSegment: Int = 0
     @State private var showAddressPrompt: Bool = false
+    @State private var showAddressMap: Bool = false
     @State private var showAddressSearch: Bool = false
 
     var body: some View {
@@ -123,10 +124,14 @@ struct HomeView: View {
         }
         .background(Color(.systemBackground))
         .sheet(isPresented: $showAddressPrompt) {
-            AddressPromptSheet(isPresented: $showAddressPrompt, showSearch: $showAddressSearch)
+            AddressPromptSheet(isPresented: $showAddressPrompt, showMap: $showAddressMap)
                 .presentationDetents([.fraction(0.28)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(28)
+                .environmentObject(locationManager)
+        }
+        .fullScreenCover(isPresented: $showAddressMap) {
+            AddressMapView()
                 .environmentObject(locationManager)
         }
         .sheet(isPresented: $showAddressSearch) {
@@ -146,6 +151,7 @@ struct HomeView: View {
         .onChange(of: locationManager.hasAddress) { _, hasAddr in
             if hasAddr {
                 showAddressPrompt = false
+                showAddressMap = false
                 showAddressSearch = false
             }
         }
