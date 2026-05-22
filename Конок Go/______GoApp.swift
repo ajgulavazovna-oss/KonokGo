@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct ______GoApp: App {
     @State private var splashFinished = false
+    @StateObject private var locationManager = LocationManager()
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -31,13 +32,17 @@ struct ______GoApp: App {
                 Color(red: 254/255, green: 134/255, blue: 5/255)
                     .ignoresSafeArea()
 
-                ContentView()
+                ContentView(splashFinished: splashFinished)
                     .opacity(splashFinished ? 1 : 0)
                     .animation(.easeInOut(duration: 0.5), value: splashFinished)
 
                 if !splashFinished {
                     SplashView(isFinished: $splashFinished)
                 }
+            }
+            .environmentObject(locationManager)
+            .onAppear {
+                locationManager.requestPermission()
             }
         }
         .modelContainer(sharedModelContainer)

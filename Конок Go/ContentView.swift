@@ -25,12 +25,13 @@ extension Color {
 // MARK: - Root
 
 struct ContentView: View {
+    var splashFinished: Bool
     @State private var selection: Int = 0
 
     var body: some View {
         TabView(selection: $selection) {
             Tab("Главная", systemImage: "house.fill", value: 0) {
-                HomeView()
+                HomeView(splashFinished: splashFinished)
             }
             Tab("Корзина", systemImage: "cart.fill", value: 1) {
                 CartView()
@@ -48,6 +49,7 @@ struct ContentView: View {
 
 struct AddressPromptSheet: View {
     @Binding var isPresented: Bool
+    @EnvironmentObject var locationManager: LocationManager
     @State private var showMapView: Bool = false
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
@@ -97,6 +99,7 @@ struct AddressPromptSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .fullScreenCover(isPresented: $showMapView) {
             AddressMapView()
+                .environmentObject(locationManager)
         }
     }
 }
@@ -104,13 +107,16 @@ struct AddressPromptSheet: View {
 // MARK: - Home
 
 struct HomeView: View {
+    var splashFinished: Bool
+    @EnvironmentObject var locationManager: LocationManager
     @State private var selectedSegment: Int = 0
-    @State private var showAddressSheet: Bool = true
+    @State private var showAddressSheet: Bool = false
+    @State private var showMapView: Bool = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                AppHeader(selectedSegment: $selectedSegment)
+                AppHeader(selectedSegment: $selectedSegment, showMapView: $showMapView)
                 BannersSection()
                     .padding(.top, 6)
                 Spacer(minLength: 100)
@@ -122,6 +128,21 @@ struct HomeView: View {
                 .presentationDetents([.fraction(0.28)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(28)
+                .environmentObject(locationManager)
+        }
+        .fullScreenCover(isPresented: $showMapView) {
+            AddressMapView()
+                .environmentObject(locationManager)
+        }
+        .onChange(of: splashFinished) { _, finished in
+            if finished && !locationManager.hasAddress {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    showAddressSheet = true
+                }
+            }
+        }
+        .onChange(of: locationManager.hasAddress) { _, hasAddr in
+            if hasAddr { showAddressSheet = false }
         }
     }
 }
@@ -193,11 +214,12 @@ struct BannerCard: View {
 
 struct AppHeader: View {
     @Binding var selectedSegment: Int
+    @Binding var showMapView: Bool
     @State private var searchText: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            AddressRow()
+            AddressRow(showMapView: $showMapView)
             SearchBar(text: $searchText)
             SegmentSwitcher(selected: $selectedSegment)
         }
@@ -211,38 +233,45 @@ struct AppHeader: View {
 // MARK: - Address Row
 
 struct AddressRow: View {
+    @Binding var showMapView: Bool
+    @EnvironmentObject var locationManager: LocationManager
+
     var body: some View {
-        HStack(spacing: 12) {
-            // Logo
-            ZStack {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 48, height: 48)
-                Image("Logo")
-                    .resizable()
-                    .renderingMode(.template)
-                    .scaledToFit()
-                    .foregroundStyle(.white)
-                    .frame(width: 30, height: 30)
-            }
-
-            // Address text
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text("Укажите адрес")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color(.label))
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color(.label))
+        Button {
+            showMapView = true
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 48, height: 48)
+                    Image("Logo")
+                        .resizable()
+                        .renderingMode(.template)
+                        .scaledToFit()
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
                 }
-                Text("Круглосуточно")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(.secondaryLabel))
-            }
 
-            Spacer()
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(locationManager.userAddress.isEmpty ? "Укажите адрес" : locationManager.userAddress)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Color(.label))
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color(.label))
+                    }
+                    Text("Круглосуточно")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
+
+                Spacer()
+            }
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -345,6 +374,7 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(splashFinished: true)
+        .environmentObject(LocationManager())
         .modelContainer(for: Item.self, inMemory: true)
 }

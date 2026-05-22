@@ -7,15 +7,14 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
-// MARK: - Address Map View
-
 struct AddressMapView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var locationManager: LocationManager
 
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 40.5283, longitude: 72.7985),
-            span: MKCoordinateSpan(latitudeDelta: 4.0, longitudeDelta: 4.0)
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
         )
     )
     @State private var address: String = ""
@@ -27,9 +26,10 @@ struct AddressMapView: View {
     @State private var comment: String = ""
     @State private var pinOffset: CGFloat = 0
     @State private var isGeocoding: Bool = false
+    @State private var showNotInOshAlert: Bool = false
+    @State private var isOutsideOsh: Bool = false
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
-    private let geocoder = CLGeocoder()
 
     enum AddressType: String, CaseIterable {
         case home  = "Дом"
@@ -49,7 +49,7 @@ struct AddressMapView: View {
         GeometryReader { geo in
             VStack(spacing: 0) {
 
-                // MARK: Map
+                // MARK: — Map
                 ZStack {
                     Map(position: $cameraPosition)
                         .onMapCameraChange(frequency: .continuous) { _ in
@@ -57,7 +57,7 @@ struct AddressMapView: View {
                         }
                         .onMapCameraChange(frequency: .onEnd) { context in
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { pinOffset = 0 }
-                            reverseGeocode(context.region.center)
+                            geocodeCenter(context.region.center)
                         }
                         .ignoresSafeArea(edges: .top)
 
@@ -77,78 +77,72 @@ struct AddressMapView: View {
                     }
                     .offset(y: pinOffset - 21)
 
-                    // Close button
+                    // Buttons overlay
                     VStack {
                         HStack {
-                            Button {
-                                dismiss()
-                            } label: {
+                            Button { dismiss() } label: {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(Color(.label))
                                     .frame(width: 36, height: 36)
                                     .background(Color(.systemBackground))
                                     .clipShape(Circle())
-                                    .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
                             }
                             Spacer()
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, geo.safeAreaInsets.top + 12)
+
                         Spacer()
 
-                        // Location button
                         HStack {
                             Spacer()
-                            Button {
-                                centerOnUser()
-                            } label: {
-                                Image(systemName: "location")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(Color(.label))
+                            Button { centerOnUser() } label: {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(orange)
                                     .frame(width: 44, height: 44)
                                     .background(Color(.systemBackground))
                                     .clipShape(Circle())
-                                    .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
                             }
                             .padding(.trailing, 16)
                             .padding(.bottom, 12)
                         }
                     }
-                }
-                .frame(height: geo.size.height * 0.50)
 
-                // MARK: Form
+                    // Outside Osh warning banner
+                    if isOutsideOsh {
+                        VStack {
+                            Spacer()
+                            Text("😔 Мы пока не работаем в этом месте")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Color.black.opacity(0.75))
+                                .clipShape(Capsule())
+                                .padding(.bottom, 8)
+                        }
+                    }
+                }
+                .frame(height: geo.size.height * 0.48)
+
+                // MARK: — Form
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
 
-                        // Country
-                        HStack(spacing: 8) {
-                            Text("🇰🇬")
-                                .font(.system(size: 18))
-                            Text("Кыргызстан")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color(.label))
+                        // Address field
+                        HStack {
+                            TextField("Улица и дом", text: $address)
+                                .font(.system(size: 15))
+                            if isGeocoding {
+                                ProgressView().scaleEffect(0.8)
+                            }
                         }
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 13)
                         .background(Color(.systemGray6))
-                        .clipShape(Capsule())
-
-                        // Address field
-                        TextField("Город, улица и дом", text: $address)
-                            .font(.system(size: 15))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 13)
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay(
-                                isGeocoding ?
-                                HStack {
-                                    Spacer()
-                                    ProgressView().padding(.trailing, 12)
-                                } : nil
-                            )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                         // Type selector
                         HStack(spacing: 8) {
@@ -172,7 +166,6 @@ struct AddressMapView: View {
                             Spacer()
                         }
 
-                        // Подъезд + Домофон
                         HStack(spacing: 10) {
                             TextField("Подъезд", text: $entrance)
                                 .font(.system(size: 15))
@@ -189,7 +182,6 @@ struct AddressMapView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
 
-                        // Этаж + Квартира
                         HStack(spacing: 10) {
                             TextField("Этаж", text: $floor)
                                 .font(.system(size: 15))
@@ -206,61 +198,102 @@ struct AddressMapView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
 
-                        // Комментарий
                         TextField("Комментарий для курьера", text: $comment)
                             .font(.system(size: 15))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 13)
                             .background(Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-                        // Continue button
-                        Button {
-                            dismiss()
-                        } label: {
-                            Text("Продолжить")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                                .background(orange)
-                                .clipShape(Capsule())
-                        }
-                        .padding(.top, 4)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
-                    .padding(.bottom, geo.safeAreaInsets.bottom + 16)
+                    .padding(.bottom, 8)
+                }
+                .scrollDismissesKeyboard(.interactively)
+
+                // MARK: — Continue button (pinned)
+                VStack(spacing: 0) {
+                    Button {
+                        if isOutsideOsh {
+                            showNotInOshAlert = true
+                        } else if address.trimmingCharacters(in: .whitespaces).isEmpty {
+                            showNotInOshAlert = true
+                        } else {
+                            locationManager.saveAddress(address)
+                            dismiss()
+                        }
+                    } label: {
+                        Text("Продолжить")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(orange)
+                            .clipShape(Capsule())
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, geo.safeAreaInsets.bottom > 0 ? geo.safeAreaInsets.bottom : 16)
                 }
                 .background(Color(.systemBackground))
             }
         }
-        .ignoresSafeArea(edges: .bottom)
-    }
-
-    // MARK: - Reverse Geocode
-
-    private func reverseGeocode(_ coordinate: CLLocationCoordinate2D) {
-        isGeocoding = true
-        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        geocoder.reverseGeocodeLocation(location) { placemarks, _ in
-            isGeocoding = false
-            guard let placemark = placemarks?.first else { return }
-            var parts: [String] = []
-            if let city = placemark.locality { parts.append(city) }
-            if let street = placemark.thoroughfare { parts.append(street) }
-            if let number = placemark.subThoroughfare { parts.append(number) }
-            address = parts.joined(separator: ", ")
+        .ignoresSafeArea(edges: .top)
+        .alert("Мы здесь пока не работаем 😔", isPresented: $showNotInOshAlert) {
+            Button("Понятно", role: .cancel) { }
+        } message: {
+            Text("Сервис доступен только в городе Ош, Кыргызстан.")
+        }
+        .onAppear {
+            if let loc = locationManager.userLocation {
+                cameraPosition = .region(MKCoordinateRegion(
+                    center: loc.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                ))
+                geocodeCenter(loc.coordinate)
+            }
+        }
+        .onChange(of: locationManager.userLocation) { _, loc in
+            guard let loc else { return }
+            cameraPosition = .region(MKCoordinateRegion(
+                center: loc.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            ))
         }
     }
 
-    // MARK: - Center on User
+    // MARK: — Geocode center
+
+    private func geocodeCenter(_ coordinate: CLLocationCoordinate2D) {
+        isGeocoding = true
+        isOutsideOsh = false
+        locationManager.reverseGeocodeCoordinate(coordinate) { addr, inOsh in
+            DispatchQueue.main.async {
+                isGeocoding = false
+                if let addr {
+                    address = addr
+                }
+                isOutsideOsh = !inOsh
+            }
+        }
+    }
+
+    // MARK: — Center on user
 
     private func centerOnUser() {
-        cameraPosition = .userLocation(fallback: .automatic)
+        locationManager.requestPermission()
+        if let loc = locationManager.userLocation {
+            withAnimation {
+                cameraPosition = .region(MKCoordinateRegion(
+                    center: loc.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                ))
+            }
+        }
     }
 }
 
 #Preview {
     AddressMapView()
+        .environmentObject(LocationManager())
 }
