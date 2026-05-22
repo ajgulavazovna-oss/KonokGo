@@ -5,11 +5,11 @@
 
 import Foundation
 import CoreLocation
+import MapKit
 import Combine
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
-    private let geocoder = CLGeocoder()
 
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published var userLocation: CLLocation?
@@ -18,6 +18,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var isInOsh: Bool = false
 
     private static let savedAddressKey = "konok_savedAddress"
+    private var activeGeocodeTask: Task<Void, Never>?
 
     override init() {
         super.init()
@@ -68,7 +69,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         DispatchQueue.main.async { self.userLocation = location }
         manager.stopUpdatingLocation()
-        reverseGeocode(location) { [weak self] address, inOsh in
+        reverseGeocode(coordinate: location.coordinate) { [weak self] address, inOsh in
             DispatchQueue.main.async {
                 self?.isInOsh = inOsh
                 if inOsh, let addr = address {
@@ -80,22 +81,28 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     func reverseGeocodeCoordinate(_ coordinate: CLLocationCoordinate2D,
                                    completion: @escaping (String?, Bool) -> Void) {
-        let loc = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        reverseGeocode(loc, completion: completion)
+        reverseGeocode(coordinate: coordinate, completion: completion)
     }
 
-    private func reverseGeocode(_ location: CLLocation,
-                                  completion: @escaping (String?, Bool) -> Void) {
-        geocoder.cancelGeocode()
-        geocoder.reverseGeocodeLocation(location) { placemarks, _ in
-            guard let p = placemarks?.first else { completion(nil, false); return }
-            let city = p.locality ?? ""
-            let inOsh = city == "Ош" || city.lowercased() == "osh"
-            var parts: [String] = []
-            if !city.isEmpty { parts.append(city) }
-            if let street = p.thoroughfare { parts.append(street) }
-            if let num   = p.subThoroughfare { parts.append(num) }
-            completion(parts.joined(separator: ", "), inOsh)
+    private func reverseGeocode(coordinate: CLLocationCoordinate2D,
+                                completion: @escaping (String?, Bool) -> Void) {
+        activeGeocodeTask?.cancel()
+        activeGeocodeTask = Task {
+            do {
+                let request = MKReverseGeocodeRequest(coordinate: coordinate)
+                let response = try await request.response
+                guard !Task.isCancelled else { return }
+                let p = response.placemark
+                let city = p.locality ?? ""
+                let inOsh = city == "Ош" || city.lowercased() == "osh"
+                var parts: [String] = []
+                if !city.isEmpty { parts.append(city) }
+                if let street = p.thoroughfare { parts.append(street) }
+                if let num = p.subThoroughfare { parts.append(num) }
+                completion(parts.joined(separator: ", "), inOsh)
+            } catch {
+                completion(nil, false)
+            }
         }
     }
 }

@@ -6,23 +6,49 @@
 import SwiftUI
 import MapKit
 
-// MARK: - Search Completer Wrapper
+// MARK: - Private Delegate (NSObject required for MKLocalSearchCompleterDelegate)
 
-class SearchCompleter: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
-    private let completer = MKLocalSearchCompleter()
-    @Published var results: [MKLocalSearchCompletion] = []
-    @Published var isSearching: Bool = false
+private class SearchDelegate: NSObject, MKLocalSearchCompleterDelegate {
+    var onResults: ([MKLocalSearchCompletion]) -> Void = { _ in }
+    var onFinished: () -> Void = { }
 
-    private let oshCenter = CLLocationCoordinate2D(latitude: 40.5283, longitude: 72.7985)
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        DispatchQueue.main.async { [weak self] in
+            self?.onResults(completer.results)
+            self?.onFinished()
+        }
+    }
 
-    override init() {
-        super.init()
-        completer.delegate = self
-        completer.resultTypes = [.address, .pointOfInterest]
-        completer.region = MKCoordinateRegion(
+    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        DispatchQueue.main.async { [weak self] in
+            self?.onFinished()
+        }
+    }
+}
+
+// MARK: - Search Completer (@Observable, no NSObject, no @Published issues)
+
+@Observable
+final class SearchCompleter {
+    var results: [MKLocalSearchCompletion] = []
+    var isSearching: Bool = false
+
+    private let mkCompleter = MKLocalSearchCompleter()
+    private let delegate = SearchDelegate()
+
+    init() {
+        mkCompleter.resultTypes = [.address, .pointOfInterest]
+        mkCompleter.region = MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 40.5283, longitude: 72.7985),
             span: MKCoordinateSpan(latitudeDelta: 0.8, longitudeDelta: 0.8)
         )
+        delegate.onResults = { [weak self] completions in
+            self?.results = completions
+        }
+        delegate.onFinished = { [weak self] in
+            self?.isSearching = false
+        }
+        mkCompleter.delegate = delegate
     }
 
     func update(query: String) {
@@ -31,20 +57,7 @@ class SearchCompleter: NSObject, ObservableObject, MKLocalSearchCompleterDelegat
             isSearching = false
         } else {
             isSearching = true
-            completer.queryFragment = query
-        }
-    }
-
-    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        DispatchQueue.main.async {
-            self.results = completer.results
-            self.isSearching = false
-        }
-    }
-
-    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        DispatchQueue.main.async {
-            self.isSearching = false
+            mkCompleter.queryFragment = query
         }
     }
 }
@@ -54,8 +67,8 @@ class SearchCompleter: NSObject, ObservableObject, MKLocalSearchCompleterDelegat
 struct AddressSearchSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var locationManager: LocationManager
-    @StateObject private var completer = SearchCompleter()
 
+    @State private var completer = SearchCompleter()
     @State private var searchText: String = ""
     @FocusState private var isFocused: Bool
 
@@ -77,10 +90,9 @@ struct AddressSearchSheet: View {
 
                 Spacer()
 
-                Button("Закрыть") { }
+                Text("Закрыть")
                     .font(.system(size: 16, weight: .medium))
                     .opacity(0)
-                    .disabled(true)
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
@@ -118,13 +130,13 @@ struct AddressSearchSheet: View {
             // MARK: Body
             if searchText.isEmpty {
                 emptyState
-            } else if completer.isSearching {
+            } else if completer.isSearching && completer.results.isEmpty {
                 VStack {
                     Spacer()
                     ProgressView()
                     Spacer()
                 }
-            } else if completer.results.isEmpty {
+            } else if !searchText.isEmpty && completer.results.isEmpty {
                 VStack(spacing: 12) {
                     Spacer()
                     Image(systemName: "mappin.slash")
@@ -155,18 +167,15 @@ struct AddressSearchSheet: View {
     private var emptyState: some View {
         VStack(spacing: 20) {
             Spacer()
-
             Image("Logo")
                 .resizable()
                 .renderingMode(.template)
                 .scaledToFit()
                 .foregroundStyle(orange)
                 .frame(width: 90, height: 90)
-
             Text("Начните вводить адрес")
                 .font(.system(size: 15))
                 .foregroundStyle(Color(.secondaryLabel))
-
             Spacer()
         }
     }
