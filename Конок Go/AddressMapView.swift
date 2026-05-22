@@ -29,6 +29,7 @@ struct AddressMapView: View {
     @State private var showNotInOshAlert: Bool = false
     @State private var isOutsideOsh: Bool = false
     @State private var showSearchSheet: Bool = false
+    @State private var showSuccess: Bool = false
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
@@ -47,6 +48,7 @@ struct AddressMapView: View {
     }
 
     var body: some View {
+        ZStack {
         GeometryReader { geo in
             VStack(spacing: 0) {
 
@@ -235,7 +237,7 @@ struct AddressMapView: View {
                             showNotInOshAlert = true
                         } else {
                             locationManager.saveAddress(address)
-                            dismiss()
+                            withAnimation(.easeInOut(duration: 0.3)) { showSuccess = true }
                         }
                     } label: {
                         Text("Продолжить")
@@ -287,6 +289,16 @@ struct AddressMapView: View {
             address = newAddress
             forwardGeocode(newAddress)
         }
+
+        // MARK: — Success Overlay
+        if showSuccess {
+            AddressSavedOverlay(orange: orange) {
+                dismiss()
+            }
+            .transition(.opacity)
+            .zIndex(10)
+        }
+        } // ZStack
     }
 
     // MARK: — Geocode center
@@ -333,6 +345,73 @@ struct AddressMapView: View {
                     center: loc.coordinate,
                     span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                 ))
+            }
+        }
+    }
+}
+
+// MARK: - Address Saved Overlay
+
+struct AddressSavedOverlay: View {
+    let orange: Color
+    let onDismiss: () -> Void
+
+    @State private var runX: CGFloat = -160
+    @State private var bobY: CGFloat = 0
+    @State private var appear: Bool = false
+
+    var body: some View {
+        ZStack {
+            Color(.systemBackground).ignoresSafeArea()
+
+            VStack(spacing: 28) {
+                // Running logo
+                ZStack {
+                    Circle()
+                        .fill(orange.opacity(0.12))
+                        .frame(width: 130, height: 130)
+
+                    Image("Logo")
+                        .resizable()
+                        .renderingMode(.template)
+                        .scaledToFit()
+                        .foregroundStyle(orange)
+                        .frame(width: 80, height: 80)
+                        .offset(x: runX, y: bobY)
+                }
+                .frame(width: 130, height: 130)
+                .clipped()
+
+                VStack(spacing: 8) {
+                    Text("Адрес сохранён!")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color(.label))
+
+                    Text("Курьер доставит заказ\nпо указанному адресу")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .multilineTextAlignment(.center)
+                }
+                .opacity(appear ? 1 : 0)
+                .offset(y: appear ? 0 : 20)
+            }
+        }
+        .onAppear {
+            // Text appears
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1)) {
+                appear = true
+            }
+            // Logo runs in from left
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.65)) {
+                runX = 0
+            }
+            // Bob up/down loop
+            withAnimation(.easeInOut(duration: 0.28).repeatForever(autoreverses: true).delay(0.5)) {
+                bobY = -8
+            }
+            // Auto-dismiss
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                onDismiss()
             }
         }
     }

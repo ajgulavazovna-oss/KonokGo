@@ -116,7 +116,7 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                AppHeader(selectedSegment: $selectedSegment, showAddressSearch: $showAddressSearch)
+                AppHeader(selectedSegment: $selectedSegment, showAddressMap: $showAddressMap)
                 BannersSection()
                     .padding(.top, 6)
                 Spacer(minLength: 100)
@@ -225,12 +225,12 @@ struct BannerCard: View {
 
 struct AppHeader: View {
     @Binding var selectedSegment: Int
-    @Binding var showAddressSearch: Bool
+    @Binding var showAddressMap: Bool
     @State private var searchText: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            AddressRow(showAddressSearch: $showAddressSearch)
+            AddressRow(showAddressMap: $showAddressMap)
             SearchBar(text: $searchText)
             SegmentSwitcher(selected: $selectedSegment)
         }
@@ -244,12 +244,12 @@ struct AppHeader: View {
 // MARK: - Address Row
 
 struct AddressRow: View {
-    @Binding var showAddressSearch: Bool
+    @Binding var showAddressMap: Bool
     @EnvironmentObject var locationManager: LocationManager
 
     var body: some View {
         Button {
-            showAddressSearch = true
+            showAddressMap = true
         } label: {
             HStack(spacing: 12) {
                 ZStack {
