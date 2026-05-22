@@ -10,6 +10,8 @@ import Combine
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
+    // CLGeocoder: deprecated warning only, still functional in iOS 26
+    private let geocoder = CLGeocoder()
 
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published var userLocation: CLLocation?
@@ -18,7 +20,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var isInOsh: Bool = false
 
     private static let savedAddressKey = "konok_savedAddress"
-    private var activeGeocodeTask: Task<Void, Never>?
 
     override init() {
         super.init()
@@ -86,23 +87,17 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     private func reverseGeocode(coordinate: CLLocationCoordinate2D,
                                 completion: @escaping (String?, Bool) -> Void) {
-        activeGeocodeTask?.cancel()
-        activeGeocodeTask = Task {
-            do {
-                let request = MKReverseGeocodeRequest(coordinate: coordinate)
-                let response = try await request.response
-                guard !Task.isCancelled else { return }
-                let p = response.placemark
-                let city = p.locality ?? ""
-                let inOsh = city == "Ош" || city.lowercased() == "osh"
-                var parts: [String] = []
-                if !city.isEmpty { parts.append(city) }
-                if let street = p.thoroughfare { parts.append(street) }
-                if let num = p.subThoroughfare { parts.append(num) }
-                completion(parts.joined(separator: ", "), inOsh)
-            } catch {
-                completion(nil, false)
-            }
+        geocoder.cancelGeocode()
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        geocoder.reverseGeocodeLocation(location) { placemarks, _ in
+            guard let p = placemarks?.first else { completion(nil, false); return }
+            let city = p.locality ?? ""
+            let inOsh = city == "Ош" || city.lowercased() == "osh"
+            var parts: [String] = []
+            if !city.isEmpty { parts.append(city) }
+            if let street = p.thoroughfare { parts.append(street) }
+            if let num = p.subThoroughfare { parts.append(num) }
+            completion(parts.joined(separator: ", "), inOsh)
         }
     }
 }
