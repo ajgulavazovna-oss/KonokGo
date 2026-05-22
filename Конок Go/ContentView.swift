@@ -26,7 +26,6 @@ extension Color {
 
 struct ContentView: View {
     @State private var selection: Int = 0
-    @State private var showAddressSheet: Bool = true
 
     var body: some View {
         TabView(selection: $selection) {
@@ -42,12 +41,6 @@ struct ContentView: View {
         }
         .tint(.orange)
         .tabBarMinimizeBehavior(.onScrollDown)
-        .sheet(isPresented: $showAddressSheet) {
-            AddressPromptSheet(isPresented: $showAddressSheet)
-                .presentationDetents([.fraction(0.28)])
-                .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(28)
-        }
     }
 }
 
@@ -108,6 +101,7 @@ struct AddressPromptSheet: View {
 
 struct HomeView: View {
     @State private var selectedSegment: Int = 0
+    @State private var showAddressSheet: Bool = true
 
     var body: some View {
         ScrollView {
@@ -119,6 +113,12 @@ struct HomeView: View {
             }
         }
         .background(Color(.systemBackground))
+        .sheet(isPresented: $showAddressSheet) {
+            AddressPromptSheet(isPresented: $showAddressSheet)
+                .presentationDetents([.fraction(0.28)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(28)
+        }
     }
 }
 
