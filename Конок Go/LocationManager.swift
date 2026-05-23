@@ -97,7 +97,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 let inOsh = city == "Ош" || city.lowercased() == "osh"
                 var parts: [String] = []
                 if !city.isEmpty { parts.append(city) }
-                if let street = p.thoroughfare { parts.append(street) }
+                if let street = p.thoroughfare {
+                    // Many streets in Osh are named "Firstname Lastname" — keep only the last word (surname)
+                    let surname = street.components(separatedBy: " ").last ?? street
+                    parts.append(surname)
+                }
                 if let num = p.subThoroughfare { parts.append(num) }
                 completion(parts.joined(separator: ", "), inOsh)
             } catch {
