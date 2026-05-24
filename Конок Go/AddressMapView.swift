@@ -309,11 +309,9 @@ struct AddressMapView: View {
     // MARK: — Forward Geocode (address text → map coordinates)
 
     private func forwardGeocode(_ query: String) {
-        Task {
-            let req = MKGeocodingRequest(addressString: query)
-            guard let items = try? await MKGeocoder().geocode(req),
-                  let loc = items.first?.location else { return }
-            await MainActor.run {
+        CLGeocoder().geocodeAddressString(query) { placemarks, _ in
+            guard let loc = placemarks?.first?.location else { return }
+            DispatchQueue.main.async {
                 withAnimation {
                     cameraPosition = .region(MKCoordinateRegion(
                         center: loc.coordinate,
