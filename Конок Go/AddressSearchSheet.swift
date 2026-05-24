@@ -90,10 +90,11 @@ final class SearchCompleter {
 
         let fromSearch = response.mapItems.map { item -> AddressSuggestion in
             let name = item.name ?? ""
-            let city = item.placemark.locality ?? ""
-            let rawStreet = item.placemark.thoroughfare ?? ""
+            let addr = item.addressRepresentations.first
+            let city = addr?.locality ?? ""
+            let rawStreet = addr?.thoroughfare ?? ""
             let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
-            let num = item.placemark.subThoroughfare ?? ""
+            let num = addr?.subThoroughfare ?? ""
             let detail = [city, street, num].filter { !$0.isEmpty }.joined(separator: ", ")
             return AddressSuggestion(title: name.isEmpty ? detail : name,
                                      subtitle: name.isEmpty ? "" : detail,
@@ -250,12 +251,13 @@ struct AddressSearchSheet: View {
     private func selectSuggestion(_ suggestion: AddressSuggestion) {
         let combined: String
         if let item = suggestion.mapItem {
-            let rawStreet = item.placemark.thoroughfare ?? ""
+            let addr = item.addressRepresentations.first
+            let rawStreet = addr?.thoroughfare ?? ""
             let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
             let parts = [
-                item.placemark.locality,
+                addr?.locality,
                 street.isEmpty ? nil : street,
-                item.placemark.subThoroughfare
+                addr?.subThoroughfare
             ].compactMap { $0 }.filter { !$0.isEmpty }
             combined = parts.isEmpty ? suggestion.title : parts.joined(separator: ", ")
         } else {

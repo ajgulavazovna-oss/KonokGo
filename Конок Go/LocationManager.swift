@@ -10,8 +10,7 @@ import Combine
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
-    // CLGeocoder: deprecated warning only, still functional in iOS 26
-    private let geocoder = CLGeocoder()
+    private let mkGeocoder = MKGeocoder()
 
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published var userLocation: CLLocation?
@@ -87,28 +86,28 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     private func reverseGeocode(coordinate: CLLocationCoordinate2D,
                                 completion: @escaping (String?, Bool) -> Void) {
-        geocoder.cancelGeocode()
-        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         Task {
-            // --- Primary: CLGeocoder ---
+            // Primary: MKGeocoder (iOS 26 API)
             var inOsh = false
             var street: String? = nil
             var num: String? = nil
 
-            if let placemarks = try? await geocoder.reverseGeocodeLocation(location),
-               let p = placemarks.first {
-                let city = p.locality ?? p.subLocality ?? ""
+            if let items = try? await mkGeocoder.reverseGeocode(MKGeocodingRequest(coordinate: coordinate)),
+               let item = items.first {
+                let addr = item.addressRepresentations.first
+                let city = addr?.locality ?? ""
                 inOsh = city == "Ош" || city.lowercased() == "osh"
-                if let raw = p.thoroughfare {
+                if let raw = addr?.thoroughfare {
                     street = raw.components(separatedBy: " ").last ?? raw
                 }
-                num = p.subThoroughfare
+                num = addr?.subThoroughfare
             }
 
-            // --- Fallback: MKLocalSearch when street or house number missing ---
+            // Fallback: MKLocalSearch when street or house number missing
             if street == nil || num == nil {
-                if let nearby = await nearbyAddress(coordinate: coordinate, inOsh: &inOsh) {
-                    completion(nearby, inOsh)
+                let (fallbackAddr, fallbackInOsh) = await nearbyAddress(coordinate: coordinate)
+                if let addr = fallbackAddr {
+                    completion(addr, fallbackInOsh || inOsh)
                     return
                 }
             }
@@ -116,44 +115,37 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             var parts: [String] = []
             if let s = street { parts.append(s) }
             if let n = num    { parts.append(n) }
-
             completion(parts.isEmpty ? nil : parts.joined(separator: ", "), inOsh)
         }
     }
 
     // MKLocalSearch fallback — finds nearest named address within ~300 m
-    private func nearbyAddress(coordinate: CLLocationCoordinate2D,
-                                inOsh: inout Bool) async -> String? {
-        let region = MKCoordinateRegion(
+    private func nearbyAddress(coordinate: CLLocationCoordinate2D) async -> (String?, Bool) {
+        let req = MKLocalSearch.Request()
+        req.naturalLanguageQuery = "дом"
+        req.region = MKCoordinateRegion(
             center: coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.003, longitudeDelta: 0.003)
         )
-        let req = MKLocalSearch.Request()
-        req.naturalLanguageQuery = "дом"
-        req.region = region
         req.resultTypes = .address
 
-        guard let resp = try? await MKLocalSearch(req).start(),
-              !resp.mapItems.isEmpty else { return nil }
+        guard let resp = try? await MKLocalSearch(request: req).start(),
+              !resp.mapItems.isEmpty else { return (nil, false) }
 
         let here = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let nearest = resp.mapItems.min {
-            CLLocation(latitude: $0.placemark.coordinate.latitude,
-                       longitude: $0.placemark.coordinate.longitude).distance(from: here)
-            <
-            CLLocation(latitude: $1.placemark.coordinate.latitude,
-                       longitude: $1.placemark.coordinate.longitude).distance(from: here)
+            ($0.location?.distance(from: here) ?? .infinity) < ($1.location?.distance(from: here) ?? .infinity)
         }
-        guard let item = nearest else { return nil }
+        guard let item = nearest else { return (nil, false) }
 
-        let city = item.placemark.locality ?? item.placemark.subLocality ?? ""
-        if city == "Ош" || city.lowercased() == "osh" { inOsh = true }
-
-        let rawStreet = item.placemark.thoroughfare ?? ""
+        let addr = item.addressRepresentations.first
+        let city = addr?.locality ?? ""
+        let inOsh = city == "Ош" || city.lowercased() == "osh"
+        let rawStreet = addr?.thoroughfare ?? ""
         let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
-        let houseNum = item.placemark.subThoroughfare ?? ""
+        let houseNum = addr?.subThoroughfare ?? ""
 
         let parts = [street, houseNum].filter { !$0.isEmpty }
-        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+        return (parts.isEmpty ? nil : parts.joined(separator: ", "), inOsh)
     }
 }
