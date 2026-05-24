@@ -87,18 +87,23 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private func reverseGeocode(coordinate: CLLocationCoordinate2D,
                                 completion: @escaping (String?, Bool) -> Void) {
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        geocoder.reverseGeocodeLocation(location) { placemarks, error in
-            guard let placemark = placemarks?.first, error == nil else {
+        Task {
+            do {
+                let placemarks = try await geocoder.reverseGeocodeLocation(location)
+                guard let placemark = placemarks.first else {
+                    completion(nil, false)
+                    return
+                }
+                let city = placemark.locality ?? ""
+                let inOsh = city == "Ош" || city.lowercased() == "osh"
+                let rawStreet = placemark.thoroughfare ?? ""
+                let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
+                let num = placemark.subThoroughfare ?? ""
+                let parts = [street, num].filter { !$0.isEmpty }
+                completion(parts.isEmpty ? nil : parts.joined(separator: ", "), inOsh)
+            } catch {
                 completion(nil, false)
-                return
             }
-            let city = placemark.locality ?? ""
-            let inOsh = city == "Ош" || city.lowercased() == "osh"
-            let rawStreet = placemark.thoroughfare ?? ""
-            let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
-            let num = placemark.subThoroughfare ?? ""
-            let parts = [street, num].filter { !$0.isEmpty }
-            completion(parts.isEmpty ? nil : parts.joined(separator: ", "), inOsh)
         }
     }
 
