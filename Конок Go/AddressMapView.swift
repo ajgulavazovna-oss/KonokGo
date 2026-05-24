@@ -29,7 +29,6 @@ struct AddressMapView: View {
     @State private var showNotInOshAlert: Bool = false
     @State private var isOutsideOsh: Bool = false
     @State private var showSearchSheet: Bool = false
-    @State private var showSuccess: Bool = false
 
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
@@ -48,7 +47,6 @@ struct AddressMapView: View {
     }
 
     var body: some View {
-        ZStack {
         GeometryReader { geo in
             VStack(spacing: 0) {
 
@@ -94,7 +92,7 @@ struct AddressMapView: View {
                             Spacer()
                         }
                         .padding(.horizontal, 16)
-                        .padding(.top, geo.safeAreaInsets.top + 12)
+                        .padding(.top, 72)
 
                         Spacer()
 
@@ -237,7 +235,7 @@ struct AddressMapView: View {
                             showNotInOshAlert = true
                         } else {
                             locationManager.saveAddress(address)
-                            withAnimation(.easeInOut(duration: 0.3)) { showSuccess = true }
+                            dismiss()
                         }
                     } label: {
                         Text("Продолжить")
@@ -290,15 +288,6 @@ struct AddressMapView: View {
             forwardGeocode(newAddress)
         }
 
-        // MARK: — Success Overlay
-        if showSuccess {
-            AddressSavedOverlay(orange: orange) {
-                dismiss()
-            }
-            .transition(.opacity)
-            .zIndex(10)
-        }
-        } // ZStack
     }
 
     // MARK: — Geocode center

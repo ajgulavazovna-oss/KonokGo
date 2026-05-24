@@ -90,23 +90,70 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         geocoder.cancelGeocode()
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         Task {
-            do {
-                let placemarks = try await geocoder.reverseGeocodeLocation(location)
-                guard let p = placemarks.first else { completion(nil, false); return }
-                let city = p.locality ?? ""
-                let inOsh = city == "Ош" || city.lowercased() == "osh"
-                var parts: [String] = []
-                if !city.isEmpty { parts.append(city) }
-                if let street = p.thoroughfare {
-                    // Many streets in Osh are named "Firstname Lastname" — keep only the last word (surname)
-                    let surname = street.components(separatedBy: " ").last ?? street
-                    parts.append(surname)
+            // --- Primary: CLGeocoder ---
+            var inOsh = false
+            var street: String? = nil
+            var num: String? = nil
+
+            if let placemarks = try? await geocoder.reverseGeocodeLocation(location),
+               let p = placemarks.first {
+                let city = p.locality ?? p.subLocality ?? ""
+                inOsh = city == "Ош" || city.lowercased() == "osh"
+                if let raw = p.thoroughfare {
+                    street = raw.components(separatedBy: " ").last ?? raw
                 }
-                if let num = p.subThoroughfare { parts.append(num) }
-                completion(parts.joined(separator: ", "), inOsh)
-            } catch {
-                completion(nil, false)
+                num = p.subThoroughfare
             }
+
+            // --- Fallback: MKLocalSearch when street or house number missing ---
+            if street == nil || num == nil {
+                if let nearby = await nearbyAddress(coordinate: coordinate, inOsh: &inOsh) {
+                    completion(nearby, inOsh)
+                    return
+                }
+            }
+
+            var parts: [String] = []
+            if let s = street { parts.append(s) }
+            if let n = num    { parts.append(n) }
+
+            completion(parts.isEmpty ? nil : parts.joined(separator: ", "), inOsh)
         }
+    }
+
+    // MKLocalSearch fallback — finds nearest named address within ~300 m
+    private func nearbyAddress(coordinate: CLLocationCoordinate2D,
+                                inOsh: inout Bool) async -> String? {
+        let region = MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.003, longitudeDelta: 0.003)
+        )
+        let req = MKLocalSearch.Request()
+        req.naturalLanguageQuery = "дом"
+        req.region = region
+        req.resultTypes = .address
+
+        guard let resp = try? await MKLocalSearch(req).start(),
+              !resp.mapItems.isEmpty else { return nil }
+
+        let here = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let nearest = resp.mapItems.min {
+            CLLocation(latitude: $0.placemark.coordinate.latitude,
+                       longitude: $0.placemark.coordinate.longitude).distance(from: here)
+            <
+            CLLocation(latitude: $1.placemark.coordinate.latitude,
+                       longitude: $1.placemark.coordinate.longitude).distance(from: here)
+        }
+        guard let item = nearest else { return nil }
+
+        let city = item.placemark.locality ?? item.placemark.subLocality ?? ""
+        if city == "Ош" || city.lowercased() == "osh" { inOsh = true }
+
+        let rawStreet = item.placemark.thoroughfare ?? ""
+        let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
+        let houseNum = item.placemark.subThoroughfare ?? ""
+
+        let parts = [street, houseNum].filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 }
