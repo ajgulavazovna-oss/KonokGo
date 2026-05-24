@@ -45,7 +45,6 @@ final class SearchCompleter {
     private let delegate = SearchDelegate()
     private var searchTask: Task<Void, Never>?
 
-    private let oshCenter = CLLocationCoordinate2D(latitude: 40.5283, longitude: 72.7985)
     private let oshRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 40.5283, longitude: 72.7985),
         span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.5)
@@ -88,17 +87,34 @@ final class SearchCompleter {
         guard let response = try? await MKLocalSearch(request: request).start() else { return }
         guard !Task.isCancelled else { return }
 
-        let fromSearch = response.mapItems.map { item -> AddressSuggestion in
-            let name = item.name ?? ""
+        let fromSearch = response.mapItems.compactMap { item -> AddressSuggestion? in
             let placemark = item.placemark
-            let city = placemark.locality ?? ""
-            let rawStreet = placemark.thoroughfare ?? ""
-            let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
+            let street = placemark.thoroughfare ?? ""
             let num = placemark.subThoroughfare ?? ""
-            let detail = [city, street, num].filter { !$0.isEmpty }.joined(separator: ", ")
-            return AddressSuggestion(title: name.isEmpty ? detail : name,
-                                     subtitle: name.isEmpty ? "" : detail,
-                                     mapItem: item)
+            let city = placemark.locality ?? ""
+            let poiName = item.name ?? ""
+
+            // Build the main address line: "улица Ленина, 15"
+            let addressLine: String
+            if !street.isEmpty && !num.isEmpty {
+                addressLine = "\(street), \(num)"
+            } else if !street.isEmpty {
+                addressLine = street
+            } else if !poiName.isEmpty {
+                addressLine = poiName
+            } else {
+                return nil
+            }
+
+            // Subtitle: city or POI detail
+            let subtitle: String
+            if !poiName.isEmpty && poiName != street {
+                subtitle = [city, street, num].filter { !$0.isEmpty }.joined(separator: ", ")
+            } else {
+                subtitle = city
+            }
+
+            return AddressSuggestion(title: addressLine, subtitle: subtitle, mapItem: item)
         }
 
         await MainActor.run {
@@ -111,8 +127,9 @@ final class SearchCompleter {
         var seen = Set<String>()
         var merged: [AddressSuggestion] = []
 
-        for s in fromCompleter + fromSearch {
-            let key = s.title + s.subtitle
+        // MKLocalSearch results (with house numbers) go first
+        for s in fromSearch + fromCompleter {
+            let key = s.title.lowercased()
             if !seen.contains(key) {
                 seen.insert(key)
                 merged.append(s)
@@ -157,7 +174,7 @@ struct AddressSearchSheet: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(orange)
-                TextField("Город, улица и дом", text: $searchText)
+                TextField("Улица и номер дома", text: $searchText)
                     .font(.system(size: 16))
                     .focused($isFocused)
                     .autocorrectionDisabled()
@@ -213,7 +230,7 @@ struct AddressSearchSheet: View {
                 .scaledToFit()
                 .foregroundStyle(orange)
                 .frame(width: 90, height: 90)
-            Text("Начните вводить адрес")
+            Text("Введите улицу и номер дома")
                 .font(.system(size: 15))
                 .foregroundStyle(Color(.secondaryLabel))
             Spacer()
@@ -252,14 +269,19 @@ struct AddressSearchSheet: View {
         let combined: String
         if let item = suggestion.mapItem {
             let placemark = item.placemark
-            let rawStreet = placemark.thoroughfare ?? ""
-            let street = rawStreet.components(separatedBy: " ").last ?? rawStreet
-            let parts = [
-                placemark.locality,
-                street.isEmpty ? nil : street,
-                placemark.subThoroughfare
-            ].compactMap { $0 }.filter { !$0.isEmpty }
-            combined = parts.isEmpty ? suggestion.title : parts.joined(separator: ", ")
+            let street = placemark.thoroughfare ?? ""
+            let num = placemark.subThoroughfare ?? ""
+            let poiName = item.name ?? ""
+
+            if !street.isEmpty && !num.isEmpty {
+                combined = "\(street), \(num)"
+            } else if !street.isEmpty {
+                combined = street
+            } else if !poiName.isEmpty {
+                combined = poiName
+            } else {
+                combined = suggestion.title
+            }
         } else {
             combined = suggestion.subtitle.isEmpty
                 ? suggestion.title
