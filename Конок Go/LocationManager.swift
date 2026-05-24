@@ -121,8 +121,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
               !resp.mapItems.isEmpty else { return (nil, false) }
 
         let here = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        let nearest = resp.mapItems.min {
-            ($0.location?.distance(from: here) ?? .infinity) < ($1.location?.distance(from: here) ?? .infinity)
+        let nearest = resp.mapItems.min { a, b in
+            let aLoc = a.placemark.location
+            let bLoc = b.placemark.location
+            let aDist = aLoc?.distance(from: here) ?? .infinity
+            let bDist = bLoc?.distance(from: here) ?? .infinity
+            return aDist < bDist
         }
         guard let item = nearest else { return (nil, false) }
 
