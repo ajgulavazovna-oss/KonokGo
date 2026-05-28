@@ -119,6 +119,7 @@ struct HomeView: View {
                 AppHeader(selectedSegment: $selectedSegment, showAddressMap: $showAddressMap)
                 BannersSection()
                     .padding(.top, 6)
+                CategoryGridSection()
                 Spacer(minLength: 100)
             }
         }
@@ -218,6 +219,72 @@ struct BannerCard: View {
         }
         .frame(width: cardW, height: cardH)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+// MARK: - Category Grid Section
+
+struct CategoryGridSection: View {
+    var body: some View {
+        VStack(spacing: 16) {
+
+            // Row 1 — Еда (полная ширина)
+            VStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color(.systemGray4))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 160)
+                Text("Еда")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(Color(.label))
+            }
+
+            // Row 2 — Аптеки + Цветы (два равных столбца)
+            HStack(spacing: 12) {
+                VStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color(.systemGray4))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 130)
+                    Text("Аптеки")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(Color(.label))
+                }
+                VStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color(.systemGray4))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 130)
+                    Text("Цветы")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(Color(.label))
+                }
+            }
+
+            // Row 3 — Доставка (полная ширина, текст внутри)
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color(.systemGray4))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 65)
+                Text("Доставка")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color(.label))
+            }
+
+            // Row 4 — три равных маленьких блока
+            HStack(spacing: 8) {
+                ForEach(0..<3, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color(.systemGray4))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 110)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 20)
+        .padding(.bottom, 8)
     }
 }
 
