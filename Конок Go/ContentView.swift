@@ -54,32 +54,45 @@ struct AddressPromptSheet: View {
     private let orange = Color(red: 254/255, green: 134/255, blue: 5/255)
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
+
+            // Drag indicator
             Capsule()
                 .fill(Color(.systemGray4))
                 .frame(width: 36, height: 5)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
+                .padding(.top, 10)
 
+            // Icon
             Image("SearchIcon")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 80, height: 80)
+                .frame(width: 120, height: 120)
+                .padding(.top, 20)
 
+            // Subtitle
+            Text("Не знаем, где вы")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(Color(.secondaryLabel))
+                .padding(.top, 12)
+
+            // Title
             Text("Укажите адрес для заказа")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Color(.label))
+                .multilineTextAlignment(.center)
+                .padding(.top, 6)
 
+            // Buttons
             HStack(spacing: 12) {
                 Button {
                     isPresented = false
                 } label: {
-                    Text("Пропустить")
+                    Text("Не сейчас")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color(.label))
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color(.systemGray4))
+                        .frame(height: 54)
+                        .background(Color(.systemGray5))
                         .clipShape(Capsule())
                 }
 
@@ -93,15 +106,14 @@ struct AddressPromptSheet: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
+                        .frame(height: 54)
                         .background(orange)
                         .clipShape(Capsule())
                 }
             }
-            .padding(.top, 4)
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color(.systemBackground))
     }
@@ -128,7 +140,7 @@ struct HomeView: View {
         .background(Color(.systemBackground))
         .sheet(isPresented: $showAddressPrompt) {
             AddressPromptSheet(isPresented: $showAddressPrompt, showMap: $showAddressMap)
-                .presentationDetents([.fraction(0.28)])
+                .presentationDetents([.fraction(0.52)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(28)
                 .presentationBackground(Color(.systemBackground))
