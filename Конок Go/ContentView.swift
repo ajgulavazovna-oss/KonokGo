@@ -277,38 +277,33 @@ struct CategoryGridSection: View {
             }
 
             // Row 3 — Доставка
-            ZStack {
+            ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color(.systemGray4))
+                    .fill(Color(.systemGray5))
                     .frame(maxWidth: .infinity)
-                    .frame(height: 64)
+                    .frame(height: 72)
 
                 HStack(spacing: 0) {
                     Image("DeliveryIcon")
                         .resizable()
                         .scaledToFit()
-                        .frame(height: 54)
-                        .padding(.leading, 8)
-
-                    Spacer()
-
-                    Text("Доставка")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color(.label))
+                        .frame(height: 68)
+                        .offset(x: -4, y: 4)
 
                     Spacer()
 
                     Circle()
-                        .fill(Color.black)
-                        .frame(width: 30, height: 30)
+                        .fill(Color(.label))
+                        .frame(width: 34, height: 34)
                         .overlay(
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(.white)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Color(.systemBackground))
                         )
-                        .padding(.trailing, 12)
+                        .padding(.trailing, 16)
                 }
             }
+            .clipped()
 
             // Row 4 — три равных маленьких блока
             HStack(spacing: 8) {
