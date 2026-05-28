@@ -7,11 +7,17 @@
 
 import SwiftUI
 import SwiftData
+import YandexMapsMobile
 
 @main
 struct ______GoApp: App {
     @State private var splashFinished = false
     @StateObject private var locationManager = LocationManager()
+
+    init() {
+        YMKMapKit.setLocale("ru_RU")
+        YMKMapKit.setApiKey("7284aedc-5194-4064-b5af-dcd0944dd279")
+    }
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([

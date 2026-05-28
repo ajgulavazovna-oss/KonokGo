@@ -6,17 +6,93 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import YandexMapsMobile
+
+// MARK: - Yandex Map Controller
+
+final class YandexMapController: ObservableObject {
+    weak var mapView: YMKMapView?
+
+    func moveTo(_ coord: CLLocationCoordinate2D, zoom: Float = 16, animated: Bool = true) {
+        guard let mapView else { return }
+        let target = YMKPoint(latitude: coord.latitude, longitude: coord.longitude)
+        let pos = YMKCameraPosition(target: target, zoom: zoom, azimuth: 0, tilt: 0)
+        if animated {
+            mapView.mapWindow.map.move(
+                with: pos,
+                animation: YMKAnimation(type: .smooth, duration: 0.5),
+                cameraCallback: nil
+            )
+        } else {
+            mapView.mapWindow.map.move(with: pos)
+        }
+    }
+}
+
+// MARK: - Yandex Map UIViewRepresentable
+
+struct YandexMapRepresentable: UIViewRepresentable {
+    let controller: YandexMapController
+    let initialCoord: CLLocationCoordinate2D
+    var onCameraMoving: () -> Void
+    var onCameraIdle: (CLLocationCoordinate2D) -> Void
+
+    func makeUIView(context: Context) -> YMKMapView {
+        let mapView = YMKMapView(frame: .zero)
+        controller.mapView = mapView
+        mapView.mapWindow.map.addCameraListener(with: context.coordinator)
+        let target = YMKPoint(latitude: initialCoord.latitude, longitude: initialCoord.longitude)
+        let pos = YMKCameraPosition(target: target, zoom: 14, azimuth: 0, tilt: 0)
+        mapView.mapWindow.map.move(with: pos)
+        return mapView
+    }
+
+    func updateUIView(_ uiView: YMKMapView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCameraMoving: onCameraMoving, onCameraIdle: onCameraIdle)
+    }
+
+    final class Coordinator: NSObject, YMKMapCameraListener {
+        var onCameraMoving: () -> Void
+        var onCameraIdle: (CLLocationCoordinate2D) -> Void
+
+        init(onCameraMoving: @escaping () -> Void, onCameraIdle: @escaping (CLLocationCoordinate2D) -> Void) {
+            self.onCameraMoving = onCameraMoving
+            self.onCameraIdle = onCameraIdle
+        }
+
+        func onCameraPositionChanged(
+            with map: YMKMap,
+            cameraPosition: YMKCameraPosition,
+            cameraUpdateReason: YMKCameraUpdateReason,
+            finished: Bool
+        ) {
+            DispatchQueue.main.async {
+                if finished {
+                    let coord = CLLocationCoordinate2D(
+                        latitude: cameraPosition.target.latitude,
+                        longitude: cameraPosition.target.longitude
+                    )
+                    self.onCameraIdle(coord)
+                } else {
+                    self.onCameraMoving()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Address Map View
 
 struct AddressMapView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var locationManager: LocationManager
 
-    @State private var cameraPosition: MapCameraPosition = .region(
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 40.5283, longitude: 72.7985),
-            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-        )
-    )
+    @StateObject private var mapController = YandexMapController()
+
+    private let defaultCoord = CLLocationCoordinate2D(latitude: 40.5283, longitude: 72.7985)
+
     @State private var address: String = ""
     @State private var selectedType: AddressType = .home
     @State private var entrance: String = ""
@@ -52,15 +128,18 @@ struct AddressMapView: View {
 
                 // MARK: — Map
                 ZStack {
-                    Map(position: $cameraPosition)
-                        .onMapCameraChange(frequency: .continuous) { _ in
+                    YandexMapRepresentable(
+                        controller: mapController,
+                        initialCoord: locationManager.userLocation?.coordinate ?? defaultCoord,
+                        onCameraMoving: {
                             withAnimation(.easeOut(duration: 0.1)) { pinOffset = -10 }
-                        }
-                        .onMapCameraChange(frequency: .onEnd) { context in
+                        },
+                        onCameraIdle: { coord in
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { pinOffset = 0 }
-                            geocodeCenter(context.region.center)
+                            geocodeCenter(coord)
                         }
-                        .ignoresSafeArea(edges: .top)
+                    )
+                    .ignoresSafeArea(edges: .top)
 
                     // Center pin
                     VStack(spacing: 0) {
@@ -114,7 +193,7 @@ struct AddressMapView: View {
                         }
                     }
 
-                    // Outside Osh warning banner
+                    // Outside Osh warning
                     if isOutsideOsh {
                         VStack {
                             Spacer()
@@ -135,7 +214,6 @@ struct AddressMapView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
 
-                        // Address field — tap to open search
                         Button {
                             showSearchSheet = true
                         } label: {
@@ -159,7 +237,6 @@ struct AddressMapView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
 
-                        // Type selector
                         HStack(spacing: 8) {
                             ForEach(AddressType.allCases, id: \.self) { type in
                                 Button {
@@ -226,12 +303,10 @@ struct AddressMapView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
 
-                // MARK: — Continue button (pinned)
+                // MARK: — Continue button
                 VStack(spacing: 0) {
                     Button {
-                        if isOutsideOsh {
-                            showNotInOshAlert = true
-                        } else if address.trimmingCharacters(in: .whitespaces).isEmpty {
+                        if isOutsideOsh || address.trimmingCharacters(in: .whitespaces).isEmpty {
                             showNotInOshAlert = true
                         } else {
                             locationManager.saveAddress(address)
@@ -268,26 +343,19 @@ struct AddressMapView: View {
         }
         .onAppear {
             if let loc = locationManager.userLocation {
-                cameraPosition = .region(MKCoordinateRegion(
-                    center: loc.coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                ))
+                mapController.moveTo(loc.coordinate, animated: false)
                 geocodeCenter(loc.coordinate)
             }
         }
         .onChange(of: locationManager.userLocation) { _, loc in
             guard let loc else { return }
-            cameraPosition = .region(MKCoordinateRegion(
-                center: loc.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            ))
+            mapController.moveTo(loc.coordinate)
         }
         .onChange(of: locationManager.userAddress) { _, newAddress in
             guard !newAddress.isEmpty else { return }
             address = newAddress
             forwardGeocode(newAddress)
         }
-
     }
 
     // MARK: — Geocode center
@@ -298,26 +366,19 @@ struct AddressMapView: View {
         locationManager.reverseGeocodeCoordinate(coordinate) { addr, inOsh in
             DispatchQueue.main.async {
                 isGeocoding = false
-                if let addr {
-                    address = addr
-                }
+                if let addr { address = addr }
                 isOutsideOsh = !inOsh
             }
         }
     }
 
-    // MARK: — Forward Geocode (address text → map coordinates)
+    // MARK: — Forward Geocode
 
     private func forwardGeocode(_ query: String) {
         Task {
             guard let loc = try? await CLGeocoder().geocodeAddressString(query).first?.location else { return }
             await MainActor.run {
-                withAnimation {
-                    cameraPosition = .region(MKCoordinateRegion(
-                        center: loc.coordinate,
-                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                    ))
-                }
+                mapController.moveTo(loc.coordinate)
             }
         }
     }
@@ -327,12 +388,7 @@ struct AddressMapView: View {
     private func centerOnUser() {
         locationManager.refreshLocation()
         if let loc = locationManager.userLocation {
-            withAnimation {
-                cameraPosition = .region(MKCoordinateRegion(
-                    center: loc.coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                ))
-            }
+            mapController.moveTo(loc.coordinate)
         }
     }
 }
@@ -352,7 +408,6 @@ struct AddressSavedOverlay: View {
             Color(.systemBackground).ignoresSafeArea()
 
             VStack(spacing: 28) {
-                // Running logo
                 ZStack {
                     Circle()
                         .fill(orange.opacity(0.12))
@@ -384,22 +439,10 @@ struct AddressSavedOverlay: View {
             }
         }
         .onAppear {
-            // Text appears
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1)) {
-                appear = true
-            }
-            // Logo runs in from left
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.65)) {
-                runX = 0
-            }
-            // Bob up/down loop
-            withAnimation(.easeInOut(duration: 0.28).repeatForever(autoreverses: true).delay(0.5)) {
-                bobY = -8
-            }
-            // Auto-dismiss
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                onDismiss()
-            }
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1)) { appear = true }
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.65)) { runX = 0 }
+            withAnimation(.easeInOut(duration: 0.28).repeatForever(autoreverses: true).delay(0.5)) { bobY = -8 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { onDismiss() }
         }
     }
 }
