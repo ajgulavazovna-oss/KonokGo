@@ -55,12 +55,16 @@ struct AddressPromptSheet: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image("Logo")
+            Capsule()
+                .fill(Color(.systemGray4))
+                .frame(width: 36, height: 5)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+            Image("SearchIcon")
                 .resizable()
-                .renderingMode(.template)
-                .foregroundStyle(orange)
                 .scaledToFit()
-                .frame(width: 44, height: 44)
+                .frame(width: 80, height: 80)
 
             Text("Укажите адрес для заказа")
                 .font(.system(size: 17, weight: .semibold))
