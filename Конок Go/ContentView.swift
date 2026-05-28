@@ -258,17 +258,16 @@ struct CategoryGridSection: View {
                 }
             }
 
-            // Row 3 — Доставка (чуть уже по ширине, текст внутри)
+            // Row 3 — Доставка (полная ширина, уменьшенная высота)
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color(.systemGray4))
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .frame(height: 48)
                 Text("Доставка")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color(.label))
             }
-            .padding(.horizontal, 24)
 
             // Row 4 — три равных маленьких блока
             HStack(spacing: 8) {
