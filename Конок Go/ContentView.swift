@@ -41,7 +41,6 @@ struct ContentView: View {
             }
         }
         .tint(.orange)
-        .tabBarMinimizeBehavior(.onScrollDown)
     }
 }
 
@@ -117,8 +116,6 @@ struct HomeView: View {
         ScrollView {
             VStack(spacing: 0) {
                 AppHeader(selectedSegment: $selectedSegment, showAddressMap: $showAddressMap)
-                BannersSection()
-                    .padding(.top, 6)
                 CategoryGridSection()
                 Spacer(minLength: 100)
             }
@@ -261,16 +258,17 @@ struct CategoryGridSection: View {
                 }
             }
 
-            // Row 3 — Доставка (полная ширина, текст внутри)
+            // Row 3 — Доставка (чуть уже по ширине, текст внутри)
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color(.systemGray4))
                     .frame(maxWidth: .infinity)
-                    .frame(height: 65)
+                    .frame(height: 56)
                 Text("Доставка")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color(.label))
             }
+            .padding(.horizontal, 24)
 
             // Row 4 — три равных маленьких блока
             HStack(spacing: 8) {
