@@ -72,10 +72,10 @@ struct AddressPromptSheet: View {
                 } label: {
                     Text("Пропустить")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color(.secondaryLabel))
+                        .foregroundStyle(Color(.label))
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(Color(.systemGray5))
+                        .background(Color(.systemGray4))
                         .clipShape(Capsule())
                 }
 
@@ -99,6 +99,7 @@ struct AddressPromptSheet: View {
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color(.systemBackground))
     }
 }
 
@@ -126,6 +127,7 @@ struct HomeView: View {
                 .presentationDetents([.fraction(0.28)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(28)
+                .presentationBackground(Color(.systemBackground))
                 .environmentObject(locationManager)
         }
         .fullScreenCover(isPresented: $showAddressMap) {
