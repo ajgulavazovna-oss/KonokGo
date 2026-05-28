@@ -276,15 +276,38 @@ struct CategoryGridSection: View {
                 }
             }
 
-            // Row 3 — Доставка (полная ширина, уменьшенная высота)
+            // Row 3 — Доставка
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color(.systemGray4))
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                Text("Доставка")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color(.label))
+                    .frame(height: 64)
+
+                HStack(spacing: 0) {
+                    Image("DeliveryIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 54)
+                        .padding(.leading, 8)
+
+                    Spacer()
+
+                    Text("Доставка")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color(.label))
+
+                    Spacer()
+
+                    Circle()
+                        .fill(Color.black)
+                        .frame(width: 30, height: 30)
+                        .overlay(
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(.white)
+                        )
+                        .padding(.trailing, 12)
+                }
             }
 
             // Row 4 — три равных маленьких блока
