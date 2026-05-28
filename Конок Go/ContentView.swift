@@ -140,7 +140,7 @@ struct HomeView: View {
         .background(Color(.systemBackground))
         .sheet(isPresented: $showAddressPrompt) {
             AddressPromptSheet(isPresented: $showAddressPrompt, showMap: $showAddressMap)
-                .presentationDetents([.fraction(0.52)])
+                .presentationDetents([.fraction(0.28)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(28)
                 .presentationBackground(Color(.systemBackground))
