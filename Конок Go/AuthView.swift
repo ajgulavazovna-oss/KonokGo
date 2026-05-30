@@ -35,26 +35,30 @@ struct WelcomeScreen: View {
             Spacer()
 
             // Logo block
-            VStack(spacing: 14) {
+            VStack(spacing: 20) {
                 ZStack {
                     Circle()
                         .fill(orange.opacity(0.1))
-                        .frame(width: 110, height: 110)
+                        .frame(width: 150, height: 150)
                     Image("Logo")
                         .resizable()
                         .renderingMode(.template)
                         .foregroundStyle(orange)
                         .scaledToFit()
-                        .frame(width: 66, height: 66)
+                        .frame(width: 92, height: 92)
                 }
 
-                Text("Конок Go")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color(.label))
+                VStack(spacing: 8) {
+                    Text("Конок Go")
+                        .font(.system(size: 38, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(.label))
 
-                Text("Быстрая доставка в Оше")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(Color(.secondaryLabel))
+                    Text("Быстрая доставка еды и товаров\nпо всему Ошу — круглосуточно")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
+                }
             }
 
             Spacer()
@@ -79,15 +83,30 @@ struct WelcomeScreen: View {
                     .clipShape(Capsule())
                 }
 
-                // Apple Sign In
+                // Apple Sign In — whiteOutline чтобы не сливался с белым фоном
                 SignInWithAppleButton(.signIn) { request in
                     request.requestedScopes = [.fullName, .email]
                 } onCompletion: { result in
-                    if case .success = result { onAuthenticated() }
+                    switch result {
+                    case .success(let auth):
+                        switch auth.credential {
+                        case let credential as ASAuthorizationAppleIDCredential:
+                            let userID = credential.user
+                            UserDefaults.standard.set(userID, forKey: "konok_appleUserID")
+                        default: break
+                        }
+                        onAuthenticated()
+                    case .failure:
+                        break
+                    }
                 }
-                .signInWithAppleButtonStyle(.black)
+                .signInWithAppleButtonStyle(.whiteOutline)
                 .frame(height: 58)
                 .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                )
 
                 // Skip
                 Button {
